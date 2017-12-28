@@ -106,3 +106,8 @@ obj-$(CONFIG_TOUCHSCREEN_COMMON)	+= tp_common.o
 
 # HMI_L6653_A01
 obj-$(CONFIG_TOUCHSCREEN_NVT_E7S) 	+= nvt_touch_e7s/
+
+
+obj-$(CONFIG_TOUCHSCREEN_SWEEP2WAKE)	+= sweep2wake.o
+obj-$(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)	+= doubletap2wake.o
+
