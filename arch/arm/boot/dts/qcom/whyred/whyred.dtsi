@@ -4,18 +4,9 @@
 #include "whyred-mdss.dtsi"
 #include "whyred-mtp.dtsi"
 #include "whyred-pinctrl.dtsi"
+#include "whyred-ramoops.dtsi"
 
 /* sdm660.dtsi */
-/ {
-	pstore_reserve_mem: pstore_reserve_mem_region@0 {
-		linux,reserve-contiguous-region;
-		linux,reserve-region;
-		linux,remove-completely;
-		reg = <0x0 0xA0000000 0x0 0x00400000>;
-		label = "pstore_reserve_mem";
-	};
-};
-
 &firmware {
 	android {
 		fstab {
