@@ -49,6 +49,8 @@
 };
 
 &pm660_fg {
+	qcom,hold-soc-while-full;
+	qcom,linearize-soc;
 	qcom,fg-cutoff-voltage = <3400>;
 	qcom,fg-recharge-voltage = <4320>;
 	qcom,fg-chg-term-current = <200>;
