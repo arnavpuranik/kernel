@@ -11,8 +11,6 @@ if [[ $1 == clean || $1 == c ]]; then
 elif [[ $1 == dirty || $1 == d ]]; then
     echo "Building Dirty"
     type=dirty
-elif [[ $1 == ci ]]; then
-    type=ci
 else
     echo "Please specify type: clean or dirty"
     exit
@@ -44,75 +42,88 @@ export KBUILD_BUILD_USER="Shekhawat2"
 export KBUILD_BUILD_HOST="Builder"
 export ARCH=arm64
 export CLANG_DIR=${KERNEL_DIR}/../pclang
+export OUT_DIR=${KERNEL_DIR}/out
 export ANYKERNEL_DIR=${KERNEL_DIR}/../anykernel
 export KERNELBUILDS_DIR=${KERNEL_DIR}/../kernelbuilds
 export JOBS="$(grep -c '^processor' /proc/cpuinfo)"
-export PATH=${CLANG_DIR}/bin:${PATH}
+export PATH=${CLANG_DIR}/bin:${KERNEL_DIR}/bin:${PATH}
+export KBUILD_COMPILER_STRING=$(${CLANG_DIR}/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+export BSDIFF=${KERNEL_DIR}/bin/bsdiff
+export BUILD_TIME=$(date +"%Y%m%d-%T")
+export KERNELZIP=${ANYKERNEL_DIR}/KCUFKernel-whyred-EAS-${BUILD_TIME}.zip
+export BUILTIMAGE=${OUT_DIR}/arch/arm64/boot/Image
+export BUILTDTB=${OUT_DIR}/arch/arm64/boot/dts/qcom/whyred.dtb
 }
 
 clean_up() {
-echo -e "$cyan Cleaning Up $nocol"
-rm -rf out
+echo -e "${cyan}Cleaning Up ${nocol}"
+rm -rf $OUT_DIR
+rm -rf ${ANYKERNEL_DIR}/Image* ${ANYKERNEL_DIR}/kernel_dtb*
+rm -rf ${ANYKERNEL_DIR}/*.xz ${ANYKERNEL_DIR}/*.zip ${ANYKERNEL_DIR}/bspatch/*
 make clean && make mrproper
 }
 
-build_kernel() {
-export KBUILD_COMPILER_STRING=$(${CLANG_DIR}/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+build() {
 BUILD_START=$(date +"%s")
-echo -e "$blue Starting $nocol"
-make whyred_defconfig O=out ARCH="${ARCH}"
-echo -e "$yellow Making $nocol"
-export PATH=${CLANG_DIR}/bin:${PATH}
-time make -j"${JOBS}" \
-	O=out \
-	ARCH=arm64 \
+echo -e "${blue}Making ${1} ${nocol}"
+make $1 \
+	-j"${JOBS}" \
+	O=$OUT_DIR \
+	ARCH=$ARCH \
 	CC="ccache clang" \
 	CROSS_COMPILE=aarch64-linux-gnu- \
 	CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-
 BUILD_END=$(date +"%s")
 DIFF=$((${BUILD_END} - ${BUILD_START}))
-echo -e "$yellow Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds.$nocol"
+echo -e "${yellow}$1 Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds.$nocol"
 }
 
 move_files() {
-if [[ ! -e ${KERNEL_DIR}/out/arch/arm64/boot/Image.gz-dtb ]]; then
-    echo "build failed"
-    exit 1
-fi
-echo "Movings Files"
+echo -e "${blue}Movings Files${nocol}"
+xz -c ${BUILTIMAGE} > ${ANYKERNEL_DIR}/Image.xz
+xz -c ${BUILTDTB} > ${ANYKERNEL_DIR}/kernel_dtb.xz
+}
+
+make_zip() {
 cd ${ANYKERNEL_DIR}
-rm -rf Image.gz-dtb modules/system/lib/modules/*
-git reset --hard HEAD
-git checkout whyredo
-mv ${KERNEL_DIR}/out/arch/arm64/boot/Image.gz-dtb Image.gz-dtb
-find ${KERNEL_DIR}/out -name "*.ko" -exec cp {} modules/system/lib/modules \;
-echo -e "$blue Making Zip"
+echo -e "${blue}Making Zip${nocol}"
 BUILD_TIME=$(date +"%Y%m%d-%T")
-zip -r KCUFKernel-whyred-${BUILD_TIME} *
-cd ..
-mv ${ANYKERNEL_DIR}/KCUFKernel-whyred-${BUILD_TIME}.zip ${KERNELBUILDS_DIR}/KCUFKernel-whyred-${BUILD_TIME}.zip
-cd ${KERNEL_DIR}
+zip -r ${KERNELZIP} * > /dev/null
+cd -
 }
 
 upload_gdrive() {
-gdrive upload --share ${KERNELBUILDS_DIR}/KCUFKernel-whyred-${BUILD_TIME}.zip
+gdrive upload --share ${KERNELZIP}
+}
+
+disable_defconfig() {
+echo -e "${blue}Disabling ${1}${nocol}"
+${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config -d $1
 }
 
 export_vars
 setup_env
-if [[ $type == clean || $type == ci ]]; then
-    clean_up
+if [ $type == clean ]; then
+clean_up
 fi
-build_kernel
-if [[ $type == clean || $type == ci ]]; then
-    move_files
-    if [[ $type == clean ]]; then
-        upload_gdrive
-        clean_up
-    elif [[ $type == ci ]]; then
-        cd ${KERNELBUILDS_DIR}
-        git add -A && git commit -m "${BUILD_TIME}"
-        git push https://${GH_TOKEN}@github.com/shekhawat2/kernelbuilds
-    fi
+build whyred_defconfig
+build dtbs
+build Image
+if [ -f $BUILTIMAGE ]; then
+mv $BUILTIMAGE out/Image_N
+else
+echo "Image Build Failed"
+exit 1
+fi
+disable_defconfig CONFIG_XIAOMI_NEW_CAMERA_BLOBS
+build Image
+if [ ! -f $BUILTIMAGE ]; then
+echo "Image Build Failed"
+exit 1
+fi
+bin/bsdiff out/arch/arm64/boot/Image out/Image_N ${ANYKERNEL_DIR}/bspatch/newcam.patch
+if [ $type == clean ]; then
+move_files
+make_zip
+upload_gdrive
 fi
