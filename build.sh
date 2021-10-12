@@ -51,7 +51,7 @@ export PATH=${CLANG_DIR}/bin:${KERNEL_DIR}/bin:${PATH}
 export KBUILD_COMPILER_STRING=$(${CLANG_DIR}/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 export BSDIFF=${KERNEL_DIR}/bin/bsdiff
 export DATE_POSTFIX=$(date +"%Y%m%d%H%M%S")
-export KERNELZIP=${ANYKERNEL_DIR}/Serum-${VERSION}_${DEVICE}-BETA2-$DATE_POSTFIX.zip *
+export KERNELZIP=${ANYKERNEL_DIR}/Serum-${VERSION}_${DEVICE}-STABLE-$DATE_POSTFIX.zip *
 export BUILTIMAGE=${OUT_DIR}/arch/arm64/boot/Image
 export BUILTDTB=${OUT_DIR}/arch/arm64/boot/dts/qcom/whyred.dtb
 }
