@@ -8,7 +8,7 @@ jobs:
       - run: pacman -Sy && pacman -S cpio --noconfirm
       - run: git clone --depth=1 https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} -b ${CIRCLE_BRANCH} .
       - run: wget https://raw.githubusercontent.com/arnavpuranik/myscripts/main/kernel_build.sh
-      - run: bash kernel_build.sh --clang
+      - run: bash kernel_build.sh --gcc
 workflows:
   version: 2
   build:
