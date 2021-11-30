@@ -716,8 +716,8 @@ int msm_camera_regulator_set_mode(struct msm_cam_regulator *vdd_info,
 				if (rc < 0) {
 					pr_err("regulator disable failed %d\n",
 						i);
-                                        }
 					goto error;
+				}
 			}
 		}
 		tmp++;
@@ -745,7 +745,7 @@ void msm_camera_put_regulators(struct platform_device *pdev,
 		if (vdd_info[i] && !IS_ERR_OR_NULL(vdd_info[i]->vdd)) {
 			devm_regulator_put(vdd_info[i]->vdd);
 			CDBG("vdd ptr[%d] :%pK\n", i, vdd_info[i]->vdd);
-                }
+		}
 	}
 
 	devm_kfree(&pdev->dev, *vdd_info);
