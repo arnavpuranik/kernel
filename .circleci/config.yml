@@ -1,7 +1,7 @@
 version: 2.0
 
 jobs:
-  Serum:
+  Nexus:
     docker:
       - image: ubuntu:jammy-20211029
     steps:
@@ -15,4 +15,4 @@ workflows:
   version: 2
   build:
     jobs:
-      - Serum
+      - Nexus
